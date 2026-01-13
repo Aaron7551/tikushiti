@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动物营养学 - 86题全套单选练习</title>
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --success-color: #27AE60;
+            --error-color: #E74C3C;
+            --text-color: #2C3E50;
+            --bg-color: #F5F7FA;
+            --card-bg: #FFFFFF;
+            --sidebar-width: 300px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--card-bg);
+            border-right: 1px solid #E1E8ED;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            flex-shrink: 0;
+        }
+
+        .timer-box {
+            text-align: center;
+            background: #EFF6FF;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        #timer { font-size: 1.8rem; font-weight: 800; color: var(--primary-color); }
+
+        .question-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .grid-item {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #DCE4E8;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .grid-item.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .grid-item.correct { background: var(--success-color); color: white; border-color: var(--success-color); }
+        .grid-item.wrong { background: var(--error-color); color: white; border-color: var(--error-color); }
+
+        /* 主区域 */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .quiz-card {
+            background: white;
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+
+        .q-header { display: flex; justify-content: space-between; margin-bottom: 20px; color: #95a5a6; font-weight: bold; }
+        .q-text { font-size: 1.3rem; line-height: 1.6; margin-bottom: 30px; }
+
+        .options-list { display: flex; flex-direction: column; gap: 12px; }
+        .option-item {
+            padding: 15px 20px;
+            border: 2px solid #F0F2F5;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: 0.2s;
+        }
+        .option-item:hover { border-color: #D1D5DB; background: #F9FAFB; }
+        .option-item.selected { border-color: var(--primary-color); background: #EBF8FF; }
+        .option-item.correct-ans { border-color: var(--success-color); background: #F0FFF4; }
+        .option-item.wrong-ans { border-color: var(--error-color); background: #FFF5F5; }
+
+        .option-item input { margin-right: 15px; transform: scale(1.2); }
+
+        .actions { margin-top: 30px; display: flex; flex-direction: column; gap: 15px; }
+        .feedback { padding: 15px; border-radius: 8px; display: none; font-weight: bold; }
+        .feedback.ok { background: #E6FFFA; color: #234E52; }
+        .feedback.no { background: #FFF5F5; color: #742A2A; }
+
+        .btn { padding: 12px 25px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .btn-submit { background: var(--primary-color); color: white; }
+        .btn-next { background: #2D3748; color: white; display: none; }
+
+        /* 弹窗 */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; place-items: center; z-index: 100; }
+        .modal-box { background: white; padding: 40px; border-radius: 15px; text-align: center; max-width: 400px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="timer-box">
+        <div id="timer">00:00:00</div>
+        <p style="margin-top:5px; color:#718096">已答 <span id="doneCount">0</span> / 86</p>
+    </div>
+    <div class="question-grid" id="qGrid"></div>
+</div>
+
+<div class="main-content">
+    <div class="quiz-card">
+        <div class="q-header">
+            <span>单选题</span>
+            <span id="qIndexLabel">Q1</span>
+        </div>
+        <div class="q-text" id="qText">正在加载题目...</div>
+        <div class="options-list" id="qOptions"></div>
+        
+        <div class="actions">
+            <div id="feedback" class="feedback"></div>
+            <div style="display: flex; justify-content: flex-end;">
+                <button class="btn btn-submit" id="submitBtn" onclick="checkAnswer()">提交答案</button>
+                <button class="btn btn-next" id="nextBtn" onclick="toNext()">下一题</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="scoreModal">
+    <div class="modal-box">
+        <h2>练习完成！</h2>
+        <h1 style="font-size: 4rem; color: var(--primary-color); margin: 20px 0;" id="finalScore">0</h1>
+        <p id="statText"></p>
+        <button class="btn btn-submit" style="margin-top:20px; width:100%" onclick="location.reload()">重新开始</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { id:1, text:"不属于动物营养生理过程的是：", options:["A. 呼吸","B. 吸收","C. 采食","D. 排泄"], ans:"A" },
+        { id:2, text:"饲料在 100-105℃ 条件下烘干后经过 550 摄氏度灼烧，剩下的部分是：", options:["A. 有机物","B. 干物质","C. 粗灰分","D. 无氮化合物"], ans:"C" },
+        { id:3, text:"一般测定饲料中粗蛋白的方法是：", options:["A. 凯氏定氮法","B. 乙醚浸提法","C. 灼烧法","D. 估测法"], ans:"A" },
+        { id:4, text:"无氮化合物中可溶于乙醚的部分是乙醚浸出物主要指脂肪，剩下部分主要是：", options:["A. 有机物","B. 粗灰分","C. 粗蛋白","D. 碳水化合物"], ans:"D" },
+        { id:5, text:"饲料哪种状态下含水量最低：", options:["A. 风干状态","B. 新鲜状态","C. 绝干状态","D. 饲喂状态"], ans:"C" },
+        { id:6, text:"风干状态下的饲料失去的水分为：", options:["A. 游离水","B. 结合水","C. 吸附水","D. 束缚水"], ans:"A" },
+        { id:7, text:"绝干状态下的饲料失去的水分为：", options:["A. 游离水","B. 结合水","C. 初水","D. 自由水"], ans:"B" },
+        { id:8, text:"饲料概略养分分析中，测定饲料中干物质时饲料所处的状态是：", options:["A. 风干状态","B. 新鲜状态","C. 绝干状态","D. 饲喂状态"], ans:"C" },
+        { id:9, text:"蛋白质的平均含氮量为：", options:["A. 14%","B. 16%","C. 6.25%","D. 7%"], ans:"B" },
+        { id:10, text:"粗脂肪提取需用以下哪种试剂：", options:["A. 乙醇","B. 硫酸","C. 甲醇","D. 乙醚"], ans:"D" },
+        { id:11, text:"粗灰分的表示方法是：", options:["A. 体积","B. 质量百分率","C. 质量","D. 质量分数"], ans:"B" },
+        { id:12, text:"动物对养分吸收的主要部位是：", options:["A. 小肠","B. 口腔","C. 盲肠","D. 食道"], ans:"A" },
+        { id:13, text:"动物的下列哪个部位不能够吸收养分：", options:["A. 小肠","B. 瘤胃","C. 盲肠","D. 食道"], ans:"D" },
+        { id:14, text:"除水外，体内含量最多，一般占干物质的 50% 的养分是：", options:["A. 碳水化合物","B. 蛋白质","C. 脂肪","D. 能量"], ans:"B" },
+        { id:15, text:"饲料中一切含氮物质的总称是：", options:["A. 蛋白质","B. 粗蛋白质","C. 氨化物","D. 非蛋白氮"], ans:"B" },
+        { id:16, text:"蛋白质的主要组成元素是碳、氢、氧、氮，大多数的蛋白质还含有：", options:["A. 磷","B. 铁","C. 硫","D. 氦"], ans:"C" },
+        { id:17, text:"用凯氏定氮法测定饲料粗蛋白质含量时，计算公式为：粗蛋白质含量% = 总含氮量% ×：", options:["A. 7.25","B. 6.25","C. 5.25","D. 4.25"], ans:"B" },
+        { id:18, text:"对于成年动物的必需氨基酸不包括：", options:["A. 胱氨酸","B. 缬氨酸","C. 苯丙氨酸","D. 异亮氨酸"], ans:"A" },
+        { id:19, text:"一般来说，猪的第一限制性氨基酸是：", options:["A. 赖氨酸","B. 组氨酸","C. 脱氨酸","D. 精氨酸"], ans:"A" },
+        { id:20, text:"对于单胃杂食动物比如猪而言，饲料蛋白质消化的主要场所是：", options:["A. 胃","B. 小肠","C. 盲肠","D. 结肠"], ans:"B" },
+        { id:21, text:"猪的代谢过程中，能将氨基酸转化为尿素的部位是：", options:["A. 肾脏","B. 肝脏","C. 大肠","D. 盲肠"], ans:"B" },
+        { id:22, text:"使用禾谷类配制家禽饲料时，() 常为第一限制性氨基酸：", options:["A. 蛋氨酸","B. 赖氨酸","C. 色氨酸","D. 苏氨酸"], ans:"A" },
+        { id:23, text:"下列代表的是过瘤胃蛋白质（瘤胃非降解蛋白）的是：", options:["A. RDP","B. RUP","C. NPN","D. MCP"], ans:"B" },
+        { id:24, text:"瘤胃微生物蛋白的品质与下列哪一种蛋白的品质相当：", options:["A. 动物蛋白","B. 谷物蛋白","C. 秸秆蛋白","D. 豆粕、苜蓿蛋白"], ans:"D" },
+        { id:25, text:"作为放牧黄牛的蛋白质补充料，下列哪种原料更经济有效：", options:["A. 豆粕","B. 棉粕","C. 尿素","D. 菜粕"], ans:"C" },
+        { id:26, text:"尿素的含氮量约为：", options:["A. 60%","B. 70%","C. 46%","D. 30%"], ans:"C" },
+        { id:27, text:"成年反刍动物利用非蛋白氮转化为微生物蛋白质的生物学基础是：", options:["A. 瘤胃需氧微生物","B. 瘤胃厌氧微生物","C. 皱胃厌氧微生物","D. 小肠厌氧微生物"], ans:"B" },
+        { id:28, text:"关于反刍动物利用非蛋白氮，说法错误的是：", options:["A. 瘤胃成熟是前提","B. 提高有效能增加合成","C. 分解产生氨速度是利用的4倍","D. 氨浓度越高添加量越多"], ans:"D" },
+        { id:29, text:"下列不属于脂类的是：", options:["A. 固醇","B. 脂肪酶","C. 磷脂","D. 甘油三酯"], ans:"B" },
+        { id:30, text:"添加等能值的下列物质，添加哪种能增加饲料净能：", options:["A. 淀粉","B. 纤维素","C. 植物油","D. 豆粕"], ans:"C" },
+        { id:31, text:"脂肪具有额外能量效应是由于：", options:["A. 含能量高","B. 热增耗低","C. 以体脂形式储备","D. 以上都对"], ans:"B" },
+        { id:32, text:"有助于维生素 A、D、E、K 吸收的是：", options:["A. 脂肪","B. 蛋白质","C. 粗纤维","D. 无氮浸出物"], ans:"A" },
+        { id:33, text:"脂肪的酸败程度可以用 () 表示：", options:["A. 酸价","B. 碘价","C. 过氧化值","D. 不皂化值"], ans:"A" },
+        { id:34, text:"下列哪一项不属于必需脂肪酸：", options:["A. 亚油酸","B. 亚麻酸","C. 花生油酸","D. 硬脂酸"], ans:"D" },
+        { id:35, text:"单胃动物对脂肪的消化是在：", options:["A. 小肠中胰脂肪酶作用","B. 胃中乳化","C. 胰腺中胰液作用","D. 胰液乳化"], ans:"A" },
+        { id:36, text:"单胃动物脂肪消化的主要部位是：", options:["A. 胃","B. 大肠","C. 结肠","D. 小肠"], ans:"D" },
+        { id:37, text:"胆汁是由 () 分泌的：", options:["A. 肝脏","B. 胆囊","C. 胰腺","D. 胃"], ans:"A" },
+        { id:38, text:"寡糖是由 () 个糖单位组成：", options:["A. 10个以上","B. 20个以上","C. 50个左右","D. 2-10个"], ans:"D" },
+        { id:39, text:"构成植物细胞壁主要成分，草食动物必不可少的是：", options:["A. 蛋白质","B. 脂肪","C. 无氮浸出物","D. 粗纤维"], ans:"D" },
+        { id:40, text:"植物性饲料糖类主要有 () 和粗纤维：", options:["A. 木质素","B. 半纤维素","C. 无氮浸出物","D. 能量"], ans:"C" },
+        { id:41, text:"动物体组织中不含有的化学成分是：", options:["A. 粗纤维","B. 蛋白质","C. 维生素","D. 糖"], ans:"A" },
+        { id:42, text:"下列饲料中，粗纤维含量最高的是：", options:["A. 糠麸类","B. 秕壳类","C. 块根类","D. 谷实类"], ans:"B" },
+        { id:43, text:"下列哪种日粮中无氮浸出物比例最大：", options:["A. 奶牛日粮","B. 猪日粮","C. 肉牛日粮","D. 兔日粮"], ans:"B" },
+        { id:44, text:"下列饲料中，无氮浸出物含量最高的是：", options:["A. 糠麸类","B. 禾本科籽实","C. 豆科籽实","D. 动物性饲料"], ans:"B" },
+        { id:45, text:"畜禽体内短期和长期储能物质分别是：", options:["A. 葡萄糖、脂肪","B. 糖原、脂肪","C. 葡萄糖、淀粉","D. 糖原、淀粉"], ans:"B" },
+        { id:46, text:"下列哪一类物质不属于单糖：", options:["A. 葡萄糖","B. 鼠李糖","C. 乳糖","D. 果糖"], ans:"C" },
+        { id:47, text:"通常情况下，畜禽能量主要来源于：", options:["A. 糖类","B. 矿物质","C. 粗脂肪","D. 蛋白质"], ans:"A" },
+        { id:48, text:"糖原不足时动用储备能量顺序：", options:["A. 体脂-体蛋白-糖原","B. 糖原-体蛋白-体脂","C. 体脂-糖原-体蛋白","D. 糖原-体脂-体蛋白"], ans:"D" },
+        { id:49, text:"单胃动物小肠对糖类消化的最终产物是：", options:["A. 乙酸","B. 丙酸","C. 丁酸","D. 葡萄糖"], ans:"D" },
+        { id:50, text:"单胃动物主要利用 () 作为能量：", options:["A. 粗纤维","B. 无氮浸出物","C. 含氮化合物","D. 脂肪"], ans:"B" },
+        { id:51, text:"下列营养物质中能量最高的是：", options:["A. 脂肪","B. 蛋白质","C. 无氮浸出物","D. 粗纤维"], ans:"A" },
+        { id:52, text:"表观代谢能公式为：", options:["A. GE-FE","B. GE-(FE-FmE)","C. GE-FE-UE-Eg","D. TME公式"], ans:"C" },
+        { id:53, text:"三大有机物中，体增热最高和最低的分别是：", options:["A. 脂肪-蛋白","B. 蛋白-脂肪","C. 糖-脂肪","D. 蛋白-糖"], ans:"B" },
+        { id:54, text:"我国标准中衡量鸡的能量需要常用：", options:["A. 消化能","B. 代谢能","C. 净能","D. 生产净能"], ans:"B" },
+        { id:55, text:"反刍动物能量评定指标是：", options:["A. 总能","B. 消化能","C. 代谢能","D. 净能"], ans:"D" },
+        { id:56, text:"我国猪饲养标准能量需要采用：", options:["A. 总能","B. 消化能","C. 代谢能","D. 净能"], ans:"B" },
+        { id:57, text:"下列不属于常量元素的是：", options:["A. 钙","B. 磷","C. 钾","D. 碘"], ans:"D" },
+        { id:58, text:"青草期“草痉挛”是由于奶牛体内缺乏：", options:["A. 磷","B. 镁","C. 硫","D. 铜"], ans:"B" },
+        { id:59, text:"下列哪项不是磷的主要生理功能：", options:["A. 核酸代谢","B. 能量代谢","C. 维持酸碱平衡","D. 促进脂类吸收"], ans:"C" },
+        { id:60, text:"体内含量超过 () 称为常量元素：", options:["A. 0.1%","B. 0.001%","C. 1%","D. 0.01%"], ans:"D" },
+        { id:61, text:"下列不是常量矿物元素的是：", options:["A. K","B. S","C. Ca","D. Fe"], ans:"D" },
+        { id:62, text:"产后瘫痪是高产奶牛缺乏 () 引起：", options:["A. Ca","B. S","C. Fe","D. Cu"], ans:"A" },
+        { id:63, text:"幼龄动物缺钙引起：", options:["A. 骨短粗","B. 佝偻病","C. 骨质疏松","D. 贫血"], ans:"B" },
+        { id:64, text:"哪种动物易发“缺镁性痉挛”：", options:["A. 猪","B. 鸡","C. 鸭","D. 牛"], ans:"D" },
+        { id:65, text:"雏鸡“橡皮喙”是由于缺乏：", options:["A. 镁","B. 钾","C. 钠","D. 钙磷"], ans:"D" },
+        { id:66, text:"血红蛋白主要微量元素是：", options:["A. 铁","B. 锌","C. 锰","D. 铜"], ans:"A" },
+        { id:67, text:"仔猪贫血与缺乏 () 有关：", options:["A. 钙","B. 磷","C. 铁","D. 锌"], ans:"C" },
+        { id:68, text:"铁铜主要储存器官是：", options:["A. 胰腺","B. 脾","C. 肝","D. 骨髓"], ans:"C" },
+        { id:69, text:"绵羊形成“直毛”或“钢丝毛”是由于缺乏：", options:["A. 铁","B. 铜","C. 钴","D. 锌"], ans:"B" },
+        { id:70, text:"参与维生素 B12 合成的元素是：", options:["A. 锰","B. 铁","C. 钴","D. 铜"], ans:"C" },
+        { id:71, text:"雏鸡滑腱症是缺乏：", options:["A. 锰","B. 铁","C. 锌","D. 氯"], ans:"A" },
+        { id:72, text:"反刍动物日粮一般不需添加：", options:["A. VA","B. VD","C. VE","D. B族维生素"], ans:"D" },
+        { id:73, text:"消化道微生物可合成的脂溶性维生素是：", options:["A. VA","B. VC","C. VE","D. VK"], ans:"D" },
+        { id:74, text:"植物体内含有的 VA 前体物是：", options:["A. 胆钙化醇","B. 生育酚","C. 胡萝卜素","D. 甲萘醌"], ans:"C" },
+        { id:75, text:"维生素 A 缺乏容易导致：", options:["A. 夜盲症","B. 佝偻病","C. 脑软化","D. 白肌病"], ans:"A" },
+        { id:76, text:"生育酚是指：", options:["A. VA","B. VE","C. VD","D. VK"], ans:"B" },
+        { id:77, text:"与硒有协同抗氧化作用的是：", options:["A. VA","B. VC","C. VE","D. VK"], ans:"C" },
+        { id:78, text:"缺乏表现为“观星状”的是：", options:["A. VB2","B. VB12","C. VB1","D. VK"], ans:"C" },
+        { id:79, text:"核黄素缺乏表现为：", options:["A. 卷爪麻痹","B. 多发神经炎","C. 佝偻病","D. 夜盲症"], ans:"A" },
+        { id:80, text:"净能与体增热之和称为：", options:["A. 总能","B. 消化能","C. 代谢能","D. 净能"], ans:"C" },
+        { id:81, text:"可消化营养物质含有的能量称：", options:["A. 总能","B. 消化能","C. 代谢能","D. 净能"], ans:"B" },
+        { id:82, text:"可利用营养物质含有的能量称：", options:["A. 总能","B. 消化能","C. 代谢能","D. 净能"], ans:"C" },
+        { id:83, text:"用于维持和生产的能量称为：", options:["A. 总能","B. 消化能","C. 代谢能","D. 净能"], ans:"D" },
+        { id:84, text:"我国家禽能量指标是：", options:["A. 消化能","B. 代谢能","C. 产奶净能","D. 奶牛能量单位"], ans:"B" },
+        { id:85, text:"我国猪的能量指标通常是：", options:["A. 消化能","B. 代谢能","C. 产奶净能","D. 奶牛能量单位"], ans:"A" },
+        { id:86, text:"总能扣除粪、尿、气体能后剩余称：", options:["A. 净能","B. 体增热","C. 代谢能","D. 维持净能"], ans:"C" }
+    ];
+
+    let currentIdx = 0;
+    let userAnswers = new Array(questions.length).fill(null);
+    let startTime = Date.now();
+
+    function initGrid() {
+        const grid = document.getElementById('qGrid');
+        questions.forEach((q, idx) => {
+            const item = document.createElement('div');
+            item.className = 'grid-item';
+            item.id = `grid-${idx}`;
+            item.innerText = q.id;
+            item.onclick = () => loadQuestion(idx);
+            grid.appendChild(item);
+        });
+    }
+
+    function loadQuestion(idx) {
+        currentIdx = idx;
+        const q = questions[idx];
+        document.getElementById('qIndexLabel').innerText = `Q${q.id}`;
+        document.getElementById('qText').innerText = q.text;
+        
+        const optionsHtml = q.options.map(opt => `
+            <label class="option-item" onclick="selectOpt(this)">
+                <input type="radio" name="answer" value="${opt.charAt(0)}">
+                ${opt}
+            </label>
+        `).join('');
+        document.getElementById('qOptions').innerHTML = optionsHtml;
+        
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('submitBtn').style.display = 'block';
+        document.getElementById('nextBtn').style.display = 'none';
+        
+        // 高亮侧边栏
+        document.querySelectorAll('.grid-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(`grid-${idx}`).classList.add('active');
+
+        // 回显已答
+        if(userAnswers[idx]) showResultState(idx);
+    }
+
+    function selectOpt(el) {
+        if(userAnswers[currentIdx]) return;
+        document.querySelectorAll('.option-item').forEach(i => i.classList.remove('selected'));
+        el.classList.add('selected');
+        el.querySelector('input').checked = true;
+    }
+
+    function checkAnswer() {
+        const selected = document.querySelector('input[name="answer"]:checked');
+        if(!selected) return alert("请选择一个答案");
+        
+        const isCorrect = selected.value === questions[currentIdx].ans;
+        userAnswers[currentIdx] = { choice: selected.value, ok: isCorrect };
+        
+        showResultState(currentIdx);
+        updateProgress();
+    }
+
+    function showResultState(idx) {
+        const res = userAnswers[idx];
+        const q = questions[idx];
+        const fb = document.getElementById('feedback');
+        
+        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'block';
+        
+        fb.style.display = 'block';
+        if(res.ok) {
+            fb.className = 'feedback ok';
+            fb.innerText = "正确！";
+            document.getElementById(`grid-${idx}`).classList.add('correct');
+        } else {
+            fb.className = 'feedback no';
+            fb.innerText = `错误！正确答案是：${q.ans}`;
+            document.getElementById(`grid-${idx}`).classList.add('wrong');
+        }
+
+        // 锁定选项颜色
+        document.querySelectorAll('.option-item').forEach(item => {
+            const val = item.querySelector('input').value;
+            if(val === q.ans) item.classList.add('correct-ans');
+            if(val === res.choice && !res.ok) item.classList.add('wrong-ans');
+            item.querySelector('input').disabled = true;
+        });
+    }
+
+    function toNext() {
+        if(currentIdx < questions.length - 1) {
+            loadQuestion(currentIdx + 1);
+        } else {
+            showFinal();
+        }
+    }
+
+    function updateProgress() {
+        const count = userAnswers.filter(a => a !== null).length;
+        document.getElementById('doneCount').innerText = count;
+    }
+
+    function showFinal() {
+        const correct = userAnswers.filter(a => a && a.ok).length;
+        const score = Math.round((correct / questions.length) * 100);
+        document.getElementById('finalScore').innerText = score;
+        document.getElementById('statText').innerText = `共 86 题，正确 ${correct} 题`;
+        document.getElementById('scoreModal').style.display = 'grid';
+    }
+
+    setInterval(() => {
+        const diff = Math.floor((Date.now() - startTime) / 1000);
+        const h = Math.floor(diff/3600).toString().padStart(2,'0');
+        const m = Math.floor((diff%3600)/60).toString().padStart(2,'0');
+        const s = (diff%60).toString().padStart(2,'0');
+        document.getElementById('timer').innerText = `${h}:${m}:${s}`;
+    }, 1000);
+
+    initGrid();
+    loadQuestion(0);
+</script>
+</body>
+</html>
